@@ -1,0 +1,5 @@
+trio (0.3.0-1) smurf; urgency=low
+
+  * source package automatically created by stdeb 0.8.5
+
+ -- Matthias Urlichs <matthias@urlichs.de>  Mon, 22 Jan 2018 12:19:07 +0100
