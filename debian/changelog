@@ -1,3 +1,9 @@
+trio (0.3.0-2) smurf; urgency=medium
+
+  * Ignore .pybuild subdirectory
+
+ -- Matthias Urlichs <matthias@urlichs.de>  Mon, 22 Jan 2018 12:32:54 +0100
+
 trio (0.3.0-1) smurf; urgency=low
 
   * source package automatically created by stdeb 0.8.5
