@@ -13,9 +13,8 @@ except ImportError:
 
 from .. import _core
 from .. import _sync
-from .. import _fd_stream
 
-__all__ = ['Process', 'wait_for_child']
+__all__ = ['wait_for_child']
 
 # TODO: use whatever works for Windows and MacOS/BSD
 
@@ -111,7 +110,7 @@ class ProcessWaiter:
 
     def _handle_exitstatus(self, sts):
         """This overrides an internal API of subprocess.Popen"""
-        self.__result = _core.Result.capture(_compute_returncode,status)
+        self.__result = _core.Result.capture(_compute_returncode,sts)
 
     @property
     def returncode(self):
@@ -119,93 +118,14 @@ class ProcessWaiter:
             return None
         return self.__result.unwrap()
 
-    def __enter__(self):
-        raise NotImplementedError("You need to use 'async with'.")
-
-    def __exit__(self, *tb):
-        raise NotImplementedError("You need to use 'async with'.")
-
-    # override a couple methods of subprocess.Popen
-    # to keep us out of danger
-    def run(self, *args, **kwargs):
-        raise NotImplementedError("You need to use 'async with'.")
-
-    def communicate(self, *args, **kwargs):
-        raise RuntimeError("Please use async tasks for this.")
-
-    def _communicate(self, *args, **kwargs):
-        raise RuntimeError("Please use async tasks for this.")
-
-    def _save_input(self, input):
-        raise RuntimeError("Please use async tasks for this.")
-
-    def poll(self):
-        raise NotImplementedError("You need to use 'async wait'.")
-
-    def _internal_poll(self):
-        raise RuntimeError("Please use async wait for this.")
-
-    def __del__(self):
-        # everything should have happened in __aexit__
-        pass
+    @returncode.setter
+    def returncode(self, result):
+        if result is not None:
+            raise RuntimeError("We should not get here.")
+        if self.__result is not None:
+            raise RuntimeError("You cannot reset the result code.")
 
 async def wait_for_child(pid):
     waiter = ProcessWaiter(pid)
     return await waiter.wait()
-
-async def _close(fd):
-    try:
-        if isinstance(fd,int):
-            os.close(fd)
-        elif hasattr(fd,'aclose'):
-            await fd.aclose()
-        else:
-            fd.close()
-    except Exception:
-        logger.exception("Closing stdin: %s" % repr(self.stdin))
-
-class Process(ProcessWaiter, subprocess.Popen):
-    """Trio clone of :class:`subprocess.Popen`.
-
-    stdin/stdout/stderr are Trio streams.
-
-    Call :meth:`run` to actually start the process.
-    """
-
-    def __init__(self, *args, **kwargs):
-        self._args = args
-        self._kwargs = kwargs
-        
-    async def __aenter__(self):
-        if self.resultcode is not None:
-            raise RuntimeError("You already started a process.")
-
-        super().__init__(*self._args, **self._kwargs)
-        self._set_pid(self.pid)
-
-        if stdin == subprocess.PIPE:
-            self.stdin = _fd_stream.ReadFDStream(self._process.stdin.fileno())
-        else:
-            self.stdin = self._process.stdin
-
-        if stdout == subprocess.PIPE:
-            self.stdout = _fd_stream.WriteFDStream(self._process.stdout.fileno())
-        else:
-            self.stdout = self._process.stdout
-
-        if stdout == subprocess.PIPE:
-            self.stdout = _fd_stream.WriteFDStream(self._process.stdout.fileno())
-        else:
-            self.stdout = self._process.stdout
-
-        self.terminate = self._process.terminate
-        self.kill = self._process.kill
-        return self
-
-    async def __aexit__(self, *tb):
-        with trio.open_cancel_scope(shield=True):
-            await _close(self.stdin)
-            await self.wait()
-            await _close(self.stdout)
-            await _close(self.stderr)
 

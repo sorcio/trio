@@ -402,6 +402,16 @@ create and access :class:`Result` objects from any thread you like.
 .. autoclass:: Error
    :members:
 
+Child processes
+===============
+
+Trio supports threads and subprocesses natively.
+See :ref:`Threads <threads>` and :ref:`Subprocesses <subprocesses>` for details.
+
+If you did acquire a child process by some other means, use
+:func:`wait_for_child` to wait until it terminates.
+
+.. autofunction:: wait_for_child
 
 Sleeping and waking
 ===================
